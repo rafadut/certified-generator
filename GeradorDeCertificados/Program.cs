@@ -5,6 +5,8 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Mail;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -79,7 +81,8 @@ namespace GeradorDeCertificados
                     Nome = row["Nome"].Cast<string>(),
                     Curso = row["Curso"].Cast<string>(),
                     Horas = row["Horas"].Cast<short>(),
-                    Minutos = row["Minutos"].Cast<short>()
+                    Minutos = row["Minutos"].Cast<short>(),
+                    Email = row["Email"].Cast<string>()
                 }
                 where item.Nome != "" 
                 select item;
@@ -87,15 +90,47 @@ namespace GeradorDeCertificados
             var participantes = query.ToList();
             int quantidadeParticipantes = participantes.Count();
 
+            //Definição do email do remetente
+            string chave = string.Empty;
+            Console.Write("Digite o endereço de email do remetente: ");
+            string enderecoEmailRemetente = Console.ReadLine();
+            Console.Write(string.Format("Digite a senha do email {0}: ", enderecoEmailRemetente));
+            ConsoleKeyInfo key;
+
+            do
+            {
+                key = Console.ReadKey(true);
+                
+                if (key.Key != ConsoleKey.Backspace && key.Key != ConsoleKey.Enter)
+                {
+                    chave += key.KeyChar;
+                    Console.Write("*");
+                }
+                else
+                {
+                    if (key.Key == ConsoleKey.Backspace && chave.Length > 0)
+                    {
+                        chave = chave.Substring(0, (chave.Length - 1));
+                        Console.Write("\b \b");
+                    }
+                }
+            }
+
+            while (key.Key != ConsoleKey.Enter);
+
+            Console.WriteLine(Environment.NewLine + "Aguarde enquanto os certificados são gerados...");
+
             for (int i = 0; i < quantidadeParticipantes; i++)
             {
                 //Montagem do texto
                 StringBuilder sb = new StringBuilder();
                 sb.Append("Certificamos que Sr. (a) ");
                 sb.Append(participantes[i].Nome);
-                sb.Append("\n participou do ");
+                sb.Append(Environment.NewLine);
+                sb.Append("participou do ");
                 sb.Append(participantes[i].Curso);
-                sb.Append("\n com carga horária de ");
+                sb.Append(Environment.NewLine);
+                sb.Append("com carga horária de ");
                 sb.Append(participantes[i].Horas);
                 sb.Append(" horas");
                 if (participantes[i].Minutos != 0)
@@ -124,7 +159,7 @@ namespace GeradorDeCertificados
 
                 //Gravação da nova imagem na pasta
                 string nomeDoArquivoGerado = string.Format(
-                    CAMINHO_DIRETORIO + CAMINHO_ARQUIVOS_GERADOS, 
+                    CAMINHO_DIRETORIO + CAMINHO_ARQUIVOS_GERADOS,
                     participantes[i].Nome);
 
                 using (MemoryStream memory = new MemoryStream())
@@ -136,6 +171,28 @@ namespace GeradorDeCertificados
                         fs.Write(bytes, 0, bytes.Length);
                     }
                 }
+
+                //Envio de email
+                MailMessage msg = new MailMessage();
+
+                msg.From = new MailAddress(enderecoEmailRemetente);
+                msg.To.Add(participantes[i].Email);
+                msg.Subject = "Certificado de conclusão do " + participantes[i].Curso;
+                msg.Body = "Olá, " + participantes[i].Nome + "!" 
+                    + Environment.NewLine
+                    + Environment.NewLine
+                    + "Segue em anexo o seu certificado de conclusão do " + participantes[i].Curso + "." 
+                    + Environment.NewLine
+                    + Environment.NewLine
+                    + "Obrigada!";
+                msg.Attachments.Add(new Attachment(nomeDoArquivoGerado));
+                SmtpClient client = new SmtpClient();
+                client.UseDefaultCredentials = false;
+                client.Host = "smtp.live.com";
+                client.Port = 587;
+                client.EnableSsl = true;
+                client.Credentials = new NetworkCredential(enderecoEmailRemetente, chave);
+                client.Send(msg);
             }
         }
     }
