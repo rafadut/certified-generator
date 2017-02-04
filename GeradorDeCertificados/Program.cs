@@ -84,23 +84,26 @@ namespace GeradorDeCertificados
                     Minutos = row["Minutos"].Cast<short>(),
                     Email = row["Email"].Cast<string>()
                 }
-                where item.Nome != "" 
+                where item.Nome != ""
                 select item;
 
             var participantes = query.ToList();
             int quantidadeParticipantes = participantes.Count();
 
+            string enderecoEmailRemetente;
+            string chave;
+
             //Definição do email do remetente
-            string chave = string.Empty;
+            chave = string.Empty;
             Console.Write("Digite o endereço de email do remetente: ");
-            string enderecoEmailRemetente = Console.ReadLine();
+            enderecoEmailRemetente = Console.ReadLine();
             Console.Write(string.Format("Digite a senha do email {0}: ", enderecoEmailRemetente));
             ConsoleKeyInfo key;
 
             do
             {
                 key = Console.ReadKey(true);
-                
+
                 if (key.Key != ConsoleKey.Backspace && key.Key != ConsoleKey.Enter)
                 {
                     chave += key.KeyChar;
@@ -117,82 +120,106 @@ namespace GeradorDeCertificados
             }
 
             while (key.Key != ConsoleKey.Enter);
+            Console.Write(Environment.NewLine);
 
-            Console.WriteLine(Environment.NewLine + "Aguarde enquanto os certificados são gerados...");
-
-            for (int i = 0; i < quantidadeParticipantes; i++)
+            try
             {
-                //Montagem do texto
-                StringBuilder sb = new StringBuilder();
-                sb.Append("Certificamos que Sr. (a) ");
-                sb.Append(participantes[i].Nome);
-                sb.Append(Environment.NewLine);
-                sb.Append("participou do ");
-                sb.Append(participantes[i].Curso);
-                sb.Append(Environment.NewLine);
-                sb.Append("com carga horária de ");
-                sb.Append(participantes[i].Horas);
-                sb.Append(" horas");
-                if (participantes[i].Minutos != 0)
+                for (int i = 0; i < quantidadeParticipantes; i++)
                 {
-                    sb.Append(" e ");
-                    sb.Append(participantes[i].Minutos);
-                    sb.Append(" minutos");
-                }
-                sb.Append(".");
-
-                string texto = sb.ToString();
-
-                //Leitura da imagem
-                string imagemModelo = CAMINHO_DIRETORIO + NOME_ARQUIVO_IMAGEM;
-                Bitmap imagem = (Bitmap)Image.FromFile(imagemModelo);
-                PointF posicao = new PointF(615f, 335f);
-
-                //Inserção do texto na imagem
-                using (Graphics graphics = Graphics.FromImage(imagem))
-                {
-                    using (Font arialFont = new Font("Arial", 18))
+                    //Montagem do texto
+                    StringBuilder sb = new StringBuilder();
+                    sb.Append("Certificamos que Sr. (a) ");
+                    sb.Append(participantes[i].Nome);
+                    sb.Append(Environment.NewLine);
+                    sb.Append("participou do ");
+                    sb.Append(participantes[i].Curso);
+                    sb.Append(Environment.NewLine);
+                    sb.Append("com carga horária de ");
+                    sb.Append(participantes[i].Horas);
+                    sb.Append(" horas");
+                    if (participantes[i].Minutos != 0)
                     {
-                        graphics.DrawString(texto, arialFont, Brushes.Black, posicao);
+                        sb.Append(" e ");
+                        sb.Append(participantes[i].Minutos);
+                        sb.Append(" minutos");
                     }
-                }
+                    sb.Append(".");
 
-                //Gravação da nova imagem na pasta
-                string nomeDoArquivoGerado = string.Format(
-                    CAMINHO_DIRETORIO + CAMINHO_ARQUIVOS_GERADOS,
-                    participantes[i].Nome);
+                    string texto = sb.ToString();
 
-                using (MemoryStream memory = new MemoryStream())
-                {
-                    using (FileStream fs = new FileStream(nomeDoArquivoGerado, FileMode.Create, FileAccess.ReadWrite))
+                    //Leitura da imagem
+                    string imagemModelo = CAMINHO_DIRETORIO + NOME_ARQUIVO_IMAGEM;
+                    Bitmap imagem = (Bitmap)Image.FromFile(imagemModelo);
+                    PointF posicao = new PointF(615f, 335f);
+
+                    //Inserção do texto na imagem
+                    using (Graphics graphics = Graphics.FromImage(imagem))
                     {
-                        imagem.Save(memory, ImageFormat.Jpeg);
-                        byte[] bytes = memory.ToArray();
-                        fs.Write(bytes, 0, bytes.Length);
+                        using (Font arialFont = new Font("Arial", 18))
+                        {
+                            graphics.DrawString(texto, arialFont, Brushes.Black, posicao);
+                        }
                     }
+
+                    //Gravação da nova imagem na pasta
+                    string nomeDoArquivoGerado = string.Format(
+                        CAMINHO_DIRETORIO + CAMINHO_ARQUIVOS_GERADOS,
+                        participantes[i].Nome);
+
+                    using (MemoryStream memory = new MemoryStream())
+                    {
+                        using (FileStream fs = new FileStream(nomeDoArquivoGerado, FileMode.Create, FileAccess.ReadWrite))
+                        {
+                            imagem.Save(memory, ImageFormat.Jpeg);
+                            byte[] bytes = memory.ToArray();
+                            fs.Write(bytes, 0, bytes.Length);
+                        }
+                    }
+
+                    Console.Write(Environment.NewLine);
+                    Console.WriteLine("O certificado de "
+                        + participantes[i].Nome
+                        + " foi gerado com sucesso.");
+
+                    //Envio de email
+                    MailMessage msg = new MailMessage();
+
+                    msg.From = new MailAddress(enderecoEmailRemetente);
+                    msg.To.Add(participantes[i].Email);
+                    msg.Subject = "Certificado de conclusão do " + participantes[i].Curso;
+                    msg.Body = "Olá, " + participantes[i].Nome + "!"
+                        + Environment.NewLine
+                        + Environment.NewLine
+                        + "Segue em anexo o seu certificado de conclusão do " + participantes[i].Curso + "."
+                        + Environment.NewLine
+                        + Environment.NewLine
+                        + "Obrigada!";
+                    msg.Attachments.Add(new Attachment(nomeDoArquivoGerado));
+                    SmtpClient client = new SmtpClient();
+                    client.UseDefaultCredentials = false;
+                    client.Host = "smtp.live.com";
+                    client.Port = 587;
+                    client.EnableSsl = true;
+                    client.Credentials = new NetworkCredential(enderecoEmailRemetente, chave);
+                    client.Send(msg);
+
+                    Console.WriteLine("O email para "
+                        + participantes[i].Nome
+                        + " foi enviado com sucesso.");
                 }
 
-                //Envio de email
-                MailMessage msg = new MailMessage();
-
-                msg.From = new MailAddress(enderecoEmailRemetente);
-                msg.To.Add(participantes[i].Email);
-                msg.Subject = "Certificado de conclusão do " + participantes[i].Curso;
-                msg.Body = "Olá, " + participantes[i].Nome + "!" 
-                    + Environment.NewLine
-                    + Environment.NewLine
-                    + "Segue em anexo o seu certificado de conclusão do " + participantes[i].Curso + "." 
-                    + Environment.NewLine
-                    + Environment.NewLine
-                    + "Obrigada!";
-                msg.Attachments.Add(new Attachment(nomeDoArquivoGerado));
-                SmtpClient client = new SmtpClient();
-                client.UseDefaultCredentials = false;
-                client.Host = "smtp.live.com";
-                client.Port = 587;
-                client.EnableSsl = true;
-                client.Credentials = new NetworkCredential(enderecoEmailRemetente, chave);
-                client.Send(msg);
+                Console.Write(Environment.NewLine);
+                Console.Write("Processamento concluído com sucesso.");
+            }
+            catch (Exception)
+            {
+                Console.Write(Environment.NewLine);
+                Console.Write("Ocorreu um erro.");
+            }
+            finally
+            {
+                Console.ReadLine();
+                Environment.Exit(0);
             }
         }
     }
