@@ -89,37 +89,7 @@ namespace GeradorDeCertificados
 
             var participantes = query.ToList();
             int quantidadeParticipantes = participantes.Count();
-
-            string enderecoEmailRemetente;
-            string chave;
-
-            //Definição do email do remetente
-            chave = string.Empty;
-            Console.Write("Digite o endereço de email do remetente: ");
-            enderecoEmailRemetente = Console.ReadLine();
-            Console.Write(string.Format("Digite a senha do email {0}: ", enderecoEmailRemetente));
-            ConsoleKeyInfo key;
-
-            do
-            {
-                key = Console.ReadKey(true);
-
-                if (key.Key != ConsoleKey.Backspace && key.Key != ConsoleKey.Enter)
-                {
-                    chave += key.KeyChar;
-                    Console.Write("*");
-                }
-                else
-                {
-                    if (key.Key == ConsoleKey.Backspace && chave.Length > 0)
-                    {
-                        chave = chave.Substring(0, (chave.Length - 1));
-                        Console.Write("\b \b");
-                    }
-                }
-            }
-
-            while (key.Key != ConsoleKey.Enter);
+            string nomeDoArquivoGerado = string.Empty;
             Console.Write(Environment.NewLine);
 
             try
@@ -162,7 +132,7 @@ namespace GeradorDeCertificados
                     }
 
                     //Gravação da nova imagem na pasta
-                    string nomeDoArquivoGerado = string.Format(
+                    nomeDoArquivoGerado = string.Format(
                         CAMINHO_DIRETORIO + CAMINHO_ARQUIVOS_GERADOS,
                         participantes[i].Nome);
 
@@ -176,39 +146,91 @@ namespace GeradorDeCertificados
                         }
                     }
 
-                    Console.Write(Environment.NewLine);
                     Console.WriteLine("O certificado de "
                         + participantes[i].Nome
-                        + " foi gerado com sucesso.");
-
-                    //Envio de email
-                    MailMessage msg = new MailMessage();
-
-                    msg.From = new MailAddress(enderecoEmailRemetente);
-                    msg.To.Add(participantes[i].Email);
-                    msg.Subject = "Certificado de conclusão do " + participantes[i].Curso;
-                    msg.Body = "Olá, " + participantes[i].Nome + "!"
-                        + Environment.NewLine
-                        + Environment.NewLine
-                        + "Segue em anexo o seu certificado de conclusão do " + participantes[i].Curso + "."
-                        + Environment.NewLine
-                        + Environment.NewLine
-                        + "Obrigada!";
-                    msg.Attachments.Add(new Attachment(nomeDoArquivoGerado));
-                    SmtpClient client = new SmtpClient();
-                    client.UseDefaultCredentials = false;
-                    client.Host = "smtp.live.com";
-                    client.Port = 587;
-                    client.EnableSsl = true;
-                    client.Credentials = new NetworkCredential(enderecoEmailRemetente, chave);
-                    client.Send(msg);
-
-                    Console.WriteLine("O email para "
-                        + participantes[i].Nome
-                        + " foi enviado com sucesso.");
+                        + " foi gerado.");
                 }
 
                 Console.Write(Environment.NewLine);
+                Console.Write("Deseja enviar os certificados por email? (S/N) ");
+                bool enviarEmails = Console.ReadLine().ToUpper().Equals("S");
+                Console.Write(Environment.NewLine);
+
+                if (enviarEmails)
+                {
+                    string enderecoEmailRemetente;
+                    string chave;
+
+                    //Definição do email do remetente
+                    chave = string.Empty;
+                    Console.Write("Digite o endereço de email do remetente: ");
+                    enderecoEmailRemetente = Console.ReadLine();
+                    Console.Write(string.Format("Digite a senha do email {0}: ", enderecoEmailRemetente));
+                    ConsoleKeyInfo key;
+
+                    do
+                    {
+                        key = Console.ReadKey(true);
+
+                        if (key.Key != ConsoleKey.Backspace && key.Key != ConsoleKey.Enter)
+                        {
+                            chave += key.KeyChar;
+                            Console.Write("*");
+                        }
+                        else
+                        {
+                            if (key.Key == ConsoleKey.Backspace && chave.Length > 0)
+                            {
+                                chave = chave.Substring(0, (chave.Length - 1));
+                                Console.Write("\b \b");
+                            }
+                        }
+                    }
+
+                    while (key.Key != ConsoleKey.Enter);
+
+                    Console.Write(Environment.NewLine);
+                    Console.Write(Environment.NewLine);
+
+                    for (int i = 0; i < quantidadeParticipantes; i++)
+                    {
+                        //Envio de email
+                        MailMessage msg = new MailMessage();
+
+                        msg.From = new MailAddress(enderecoEmailRemetente);
+                        msg.To.Add(participantes[i].Email);
+                        msg.Subject = "Certificado de conclusão do " + participantes[i].Curso;
+                        msg.Body = "Olá, " + participantes[i].Nome + "!"
+                            + Environment.NewLine
+                            + Environment.NewLine
+                            + "Segue em anexo o seu certificado de conclusão do " + participantes[i].Curso + "."
+                            + Environment.NewLine
+                            + Environment.NewLine
+                            + "Obrigada!";
+                        msg.Attachments.Add(new Attachment(nomeDoArquivoGerado));
+                        SmtpClient client = new SmtpClient();
+                        client.UseDefaultCredentials = false;
+                        if (enderecoEmailRemetente.Contains("gmail"))
+                        {
+                            client.Host = "smtp.gmail.com";
+                        }
+                        else
+                        {
+                            client.Host = "smtp.live.com";
+                        }
+                        client.Port = 587;
+                        client.EnableSsl = true;
+                        client.Credentials = new NetworkCredential(enderecoEmailRemetente, chave);
+                        client.Send(msg);
+
+                        Console.WriteLine("O email para "
+                            + participantes[i].Nome
+                            + " foi enviado.");
+                    }
+
+                    Console.Write(Environment.NewLine);
+                }
+
                 Console.Write("Processamento concluído com sucesso.");
             }
             catch (Exception)
