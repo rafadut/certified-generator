@@ -4,8 +4,11 @@
 O gerador funciona assim:
 
 1 - Realiza a leitura de uma planilha com nomes e emails dos alunos que receberão os certificados;
+
 2 - Copia uma imagem modelo para montar os certificados;
+
 3 - Gera um certificado para cada nome da lista dentro da pasta "C:\GeradorDeCertificados\gerados";
+
 4 - Envia o certificado por email (opcional).
 
 
