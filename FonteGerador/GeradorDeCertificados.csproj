@@ -100,6 +100,8 @@
   <ItemGroup>
     <Content Include="GeradorDeCertificados\AccessDatabaseEngine\AccessDatabaseEngine.exe" />
     <Content Include="GeradorDeCertificados\AccessDatabaseEngine\AccessDatabaseEngine_X64.exe" />
+    <Content Include="GeradorDeCertificados\gerados\João Silva Santos Souza Oliveira.bmp" />
+    <Content Include="GeradorDeCertificados\gerados\Maria Silva Santos Souza Oliveira.bmp" />
     <Content Include="GeradorDeCertificados\modelo_certificado.bmp" />
     <Content Include="GeradorDeCertificados\Release\GeradorDeCertificados.exe" />
     <Content Include="GeradorDeCertificados\Release\GeradorDeCertificados.pdb" />
@@ -111,9 +113,7 @@
     <Content Include="GeradorDeCertificados\Release\Remotion.dll" />
     <Content Include="GeradorDeCertificados\Release\Remotion.Interfaces.dll" />
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="GeradorDeCertificados\gerados\" />
-  </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.
